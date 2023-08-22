@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import express from "express";
 import { Server } from "socket.io";
 import http from "node:http";
+import crypto from "node:crypto";
 export const client = new PrismaClient();
 
 const app = express();
@@ -12,9 +13,10 @@ const io = new Server(server, {
   },
 });
 
+let userNum = 0;
+
 io.on("connection", (socket) => {
-  console.log(socket);
-  console.log("there is user in socket");
+  socket.emit("user-data", crypto.randomUUID());
 
   socket.on("chat-message", (arg) => {
     console.log(arg);
@@ -26,6 +28,6 @@ app.get("/", (req, res) => {
   res.send("<h1>Alive!</h1>");
 });
 
-server.listen(3000, () => {
+server.listen(3001, () => {
   console.log("App started to work");
 });

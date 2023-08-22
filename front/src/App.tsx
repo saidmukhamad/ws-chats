@@ -4,11 +4,14 @@ import { io } from "socket.io-client";
 import { Socket } from "socket.io-client/debug";
 import { DefaultEventsMap } from "@socket.io/component-emitter";
 const url = "http://localhost:3000/";
+
 function App() {
   const [state, setState] = React.useState<null | Socket<
     DefaultEventsMap,
     DefaultEventsMap
   >>(null);
+
+  const [userName, setUsername] = React.useState("123");
 
   React.useEffect(() => {
     if (!state) {
@@ -16,6 +19,10 @@ function App() {
       console.log(sock);
       // @ts-ignore
       setState(sock);
+
+      sock.on("user-data", (arg) => {
+        console.log(arg, "recieved data");
+      });
     }
   }, []);
 
@@ -25,11 +32,11 @@ function App() {
     }
   };
 
-  React.useEffect(() => {
-    if (state) {
-      state.emit("chat-message", "penis");
-    }
-  }, [state]);
+  // React.useEffect(() => {
+  //   if (state) {
+  //     state.emit("chat-message", "penis");
+  //   }
+  // }, [state]);
 
   return (
     <>
