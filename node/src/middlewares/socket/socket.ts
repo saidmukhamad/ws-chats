@@ -25,6 +25,8 @@ export class SockerServer extends Server {
         console.log("socket");
         console.log("connected");
       });
+
+      socket.emit("user-data", "pennnnnnnn");
     });
   }
 }
