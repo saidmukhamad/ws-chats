@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start:front": "cd front1 && npm start",
+    "start:front": "cd front && npm start",
     "start:node": "cd node && npm start",
     "start": "concurrently \"npm run start:front\" \"npm run start:node\""
   },
