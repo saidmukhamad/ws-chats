@@ -32,7 +32,7 @@ function App() {
 
   const send = () => {
     if (ioState !== null) {
-      ioState.emit("m/:id", "123");
+      ioState.emit("message", "123");
     }
   };
   return (
