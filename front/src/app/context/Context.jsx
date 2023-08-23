@@ -8,6 +8,7 @@ const defaultContextValue = {
   },
   logIn: () => console.error("Log in not defined"),
   logOut: () => console.error("Log out not defined"),
+  signIn: () => console.error("signIn out not defined"),
 };
 
 export const Context = React.createContext(defaultContextValue);
@@ -22,9 +23,10 @@ function ContextProvider({ children }) {
     email: "",
   });
 
-  const register = (email, password) => {
+  const signIn = (email, password) => {
     const request = fetch(`${link}/auth/reg`, {
       method: "POST",
+      credentials: "include",
       body: {
         email,
         password,
@@ -44,6 +46,8 @@ function ContextProvider({ children }) {
 
   const logIn = (email) => {
     const request = fetch(`${link}/auth/log`, {
+      credentials: "include",
+
       method: "POST",
       body: {
         email,
@@ -66,7 +70,9 @@ function ContextProvider({ children }) {
       loggedIn: false,
       email: "",
     });
-    const request = fetch(`${link}/auth/logout`)
+    const request = fetch(`${link}/auth/logout`, {
+      credentials: "include",
+    })
       .then((d) => localStorage.removeItem("email"))
       .catch((e) => console.error(e));
   };
@@ -82,7 +88,7 @@ function ContextProvider({ children }) {
   }, []);
 
   return (
-    <Context.Provider value={{ user: state, logIn, logOut, register }}>
+    <Context.Provider value={{ user: state, logIn, logOut, signIn }}>
       {children}
     </Context.Provider>
   );

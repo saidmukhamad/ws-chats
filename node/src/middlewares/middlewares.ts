@@ -22,8 +22,9 @@ export class Middlewares {
         origin: allowedList,
         credentials: true,
       },
+      cookie: true,
     });
-
+    this.initRoutes();
     this.listen();
   }
 

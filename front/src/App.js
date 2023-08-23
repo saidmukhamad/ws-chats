@@ -2,6 +2,7 @@ import "./App.css";
 import io from "socket.io-client";
 import React from "react";
 import Chat from "./widgets/chat/Chat";
+import Auth from "./widgets/auth/Auth";
 import { link } from "./shared/constants/url";
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
   };
   return (
     <div className="App">
+      <Auth />
       <Chat />
     </div>
   );
