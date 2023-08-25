@@ -149,13 +149,21 @@ export class SockerServer {
         }
       );
 
+      /**
+       * TODO: add pagination
+       */
       socket.on("chat:look", async (chatId, callback) => {
         try {
           const look = await client.chat.findUnique({
             where: {
               id: chatId,
             },
+            include: {
+              messages: true,
+            },
           });
+
+          socket.emit("chat:lookup", look);
         } catch (error) {}
       });
 
