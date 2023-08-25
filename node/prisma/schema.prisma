@@ -15,21 +15,14 @@ model User {
   
   password            String  
 
-  chats               ChatParticipant[]
+  chats               Chat[]      @relation(fields: [chatsId], references: [id])
+  chatsId             String[]    @db.ObjectId
   messages            Message[]
 }
 
 
 
 
-model ChatParticipant {
-  id              String    @id @default(auto()) @map("_id") @db.ObjectId
-  user            User      @relation(fields: [userId], references: [id])
-  userId          String    @db.ObjectId
-  
-  chatId          String    @db.ObjectId   
-  chat            Chat      @relation(fields: [chatId], references: [id])
-}
 
 model Message {
   id String @id @default(auto()) @map("_id") @db.ObjectId
@@ -49,7 +42,10 @@ model Message {
 
 model Chat {
   id              String @id @default(auto()) @map("_id") @db.ObjectId
-  participants    ChatParticipant[]
+  participants                  User[]      @relation(fields: [participantsId], references: [id])
+  participantsId          String[]    @db.ObjectId
+  
+
 
   messages        Message[]  @relation("chatMessages")
   latestMessage   Message?   @relation(name: "latestChatMessage", fields: [latestMessageId], references: [id], onUpdate: NoAction, onDelete: NoAction)

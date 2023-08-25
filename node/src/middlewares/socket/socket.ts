@@ -9,22 +9,24 @@ export interface ParsedCookies {
   [key: string]: string;
 }
 
-enum ClientEvents {
-  JoinChat = "joinChat",
-  SendMessage = "sendMessage",
-  Disconnect = "disconnect",
-  // ... any other events you might have
+export interface ServerEvents {
+  "chat:create": (users, callback) => void;
+  "chat:join": (chatId, callback) => void;
+  "chat:sendMessage": (chatId, message, callback) => void;
+  "chat:look": (chatId, callback) => void;
 }
 
-type eventsMap = {
-  [ClientEvents.SendMessage]: (
-    chatId: string,
-    callback: (error?: string) => void
-  ) => void;
-};
+const chatRoom = new Map();
+const activeUsers = new Map<string, string[]>();
 
 export class SockerServer {
-  private server: Server<eventsMap, eventsMap, eventsMap>;
+  private server: Server<
+    ServerEvents,
+    any,
+    any,
+    { cookies: { email: string }; email: string }
+  >;
+
   constructor(server_: Server) {
     this.server = server_;
     // this.initHandlers();
@@ -33,13 +35,15 @@ export class SockerServer {
 
   private setupListeners(): void {
     this.server.on("connection", async (socket) => {
+      console.log(socket.id, "session identifier");
+
       socket.use(async (sock, next) => {
         try {
           const cookies = socket.handshake.headers.cookie || "";
 
           if (cookies) {
-            const parsedCookies: { email?: string } = parse(cookies) as {
-              email?: string;
+            const parsedCookies: { email: string } = parse(cookies) as {
+              email: string;
             };
             if (!parsedCookies.email) {
               throw Error("no cookie");
@@ -55,8 +59,11 @@ export class SockerServer {
             if (!data) {
               throw Error("not authorized");
             }
-
-            socket.data.user = data;
+            socket.data.email = parsedCookies.email;
+            activeUsers.set(data.email, [
+              ...(activeUsers.get(data.email) ?? []),
+              socket.id,
+            ]);
             next();
           }
         } catch (error) {
@@ -64,6 +71,100 @@ export class SockerServer {
           err.message = "Please retry later";
           next(err);
         }
+      });
+
+      socket.on(
+        "chat:create",
+        async (users: string[] | { id: string }[], callback) => {
+          try {
+            users = users.map((id) => ({ id }));
+            const chat = await client.chat.create({
+              data: {
+                participants: {
+                  connect: users,
+                },
+              },
+              include: {
+                participants: true,
+              },
+            });
+
+            if (chat) {
+              const socketIds: string[] = [];
+              for (let id of chat.participantsId) {
+                const test = activeUsers.get(id) ?? [];
+                socketIds.push(...(activeUsers.get(id) ?? []));
+              }
+
+              for (let s of socketIds) {
+                socket.to(s).emit("chat:create", {
+                  chatId: chat.id,
+                  participants: chat.participantsId,
+                });
+              }
+            }
+          } catch (error) {}
+        }
+      );
+
+      socket.on(
+        "chat:sendMessage",
+        async (chatId: string, message: string, callback) => {
+          try {
+            const chat = await client.chat.update({
+              where: {
+                id: chatId,
+              },
+              data: {
+                messages: {
+                  create: {
+                    body: message,
+                    sender: {
+                      connect: {
+                        email: socket.data.email,
+                      },
+                    },
+                  },
+                },
+              },
+            });
+
+            if (chat) {
+              const socketIds: string[] = [];
+              for (let id of chat.participantsId) {
+                const test = activeUsers.get(id) ?? [];
+                socketIds.push(...(activeUsers.get(id) ?? []));
+              }
+
+              for (let s of socketIds) {
+                socket.to(s).emit("chat:create", {
+                  chatId: chat.id,
+                  participants: chat.participantsId,
+                });
+              }
+            }
+          } catch (error) {
+            console.error(error);
+          }
+        }
+      );
+
+      socket.on("chat:look", async (chatId, callback) => {
+        try {
+          const look = await client.chat.findUnique({
+            where: {
+              id: chatId,
+            },
+          });
+        } catch (error) {}
+      });
+
+      socket.on("disconnecting", () => {
+        let data: string[] = activeUsers.get(socket.data.email);
+        data = data.filter((id) => id !== socket.id);
+        if (data.length === 0) {
+          activeUsers.delete(socket.data.email);
+        } else activeUsers.set(socket.data.email, data);
       });
     });
 
