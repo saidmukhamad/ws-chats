@@ -6,6 +6,7 @@ export const register = async (
   res: Response
 ) => {
   try {
+    console.log(req.body);
     const user = await client.user.create({
       data: {
         email: req.body.email,

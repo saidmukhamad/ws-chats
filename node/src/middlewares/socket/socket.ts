@@ -1,43 +1,78 @@
-import { Server, ServerOptions } from "socket.io";
+import { Server, ServerOptions, Socket } from "socket.io";
 import http from "node:http";
 import { Http2SecureServer } from "node:http2";
 import type { Server as HTTPSServer } from "https";
+import { parse } from "cookie";
+import { client } from "../../util/helpers/prismaClient";
+import { User } from "@prisma/client";
+export interface ParsedCookies {
+  [key: string]: string;
+}
 
-const parseCookie = (str: string) =>
-  str
-    .split(";")
-    .map((v) => v.split("="))
-    .reduce((acc: any, v) => {
-      acc[decodeURIComponent(v[0].trim())] = decodeURIComponent(v[1].trim());
-      return acc;
-    }, {});
+enum ClientEvents {
+  JoinChat = "joinChat",
+  SendMessage = "sendMessage",
+  Disconnect = "disconnect",
+  // ... any other events you might have
+}
 
-export class SockerServer extends Server {
-  constructor(
-    srv:
-      | undefined
-      | Partial<ServerOptions>
-      | http.Server
-      | HTTPSServer
-      | Http2SecureServer
-      | number,
-    opts?: Partial<ServerOptions>
-  ) {
-    super(srv, opts);
-    this.initHandlers();
+type eventsMap = {
+  [ClientEvents.SendMessage]: (
+    chatId: string,
+    callback: (error?: string) => void
+  ) => void;
+};
+
+export class SockerServer {
+  private server: Server<eventsMap, eventsMap, eventsMap>;
+  constructor(server_: Server) {
+    this.server = server_;
+    // this.initHandlers();
+    this.setupListeners();
   }
 
-  private initHandlers() {
-    this.on("connection", (socket) => {
-      const cookie = parseCookie(socket.client.request.headers.cookie ?? "");
+  private setupListeners(): void {
+    this.server.on("connection", async (socket) => {
+      socket.use(async (sock, next) => {
+        try {
+          const cookies = socket.handshake.headers.cookie || "";
 
-      socket.on("msg", (arg) => {
-        console.log(arg);
-        console.log("socket");
-        console.log("connected");
+          if (cookies) {
+            const parsedCookies: { email?: string } = parse(cookies) as {
+              email?: string;
+            };
+            if (!parsedCookies.email) {
+              throw Error("no cookie");
+            }
+            socket.data.cookies = parsedCookies;
+
+            const data = await client.user.findUnique({
+              where: {
+                email: socket.data.cookies.email,
+              },
+            });
+
+            if (!data) {
+              throw Error("not authorized");
+            }
+
+            socket.data.user = data;
+            next();
+          }
+        } catch (error) {
+          const err = new Error("not authorized");
+          err.message = "Please retry later";
+          next(err);
+        }
       });
+    });
 
-      socket.emit("user-data", "pennnnnnnn");
+    this.server.on("connect_error", (err) => {
+      console.log(err instanceof Error); // true
+      console.log(err.message); // not authorized
+      console.log(err.data); // { content: "Please retry later" }
     });
   }
+
+  private chatsListeners(): void {}
 }

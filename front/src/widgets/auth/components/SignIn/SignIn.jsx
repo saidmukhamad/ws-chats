@@ -4,7 +4,7 @@ import Register from "../User/User";
 import { Context } from "../../../../app/context/Context";
 function SignIn() {
   const [form, setForm] = React.useState({
-    name: "",
+    email: "",
     password: "",
   });
 
@@ -18,10 +18,10 @@ function SignIn() {
           password: e.target.value,
         }));
         break;
-      case "name":
+      case "email":
         setForm((prev) => ({
           ...prev,
-          name: e.target.value,
+          email: e.target.value,
         }));
         break;
       default:
@@ -44,15 +44,15 @@ function SignIn() {
         }}
         onSubmit={(e) => {
           e.preventDefault();
-          ctx.signIn(form.name, form.password);
+          ctx.signIn(form.email, form.password);
         }}
       >
         <input
           onChange={handleForm}
           type="text"
-          value={form.name}
-          placeholder="name"
-          id="name"
+          value={form.email}
+          placeholder="email"
+          id="email"
         />
         <input
           onChange={handleForm}

@@ -27,19 +27,25 @@ function ContextProvider({ children }) {
     const request = fetch(`${link}/auth/reg`, {
       method: "POST",
       credentials: "include",
-      body: {
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify({
         email,
         password,
-      },
+      }),
     });
 
     request
       .then((d) => {
-        setState({
-          loggedIn: true,
-          email,
-        });
-        localStorage.setItem("email", email);
+        if (d.status != 500) {
+          setState({
+            loggedIn: true,
+            email,
+          });
+          localStorage.setItem("email", email);
+        } else throw "error from promise";
       })
       .catch((e) => console.error(e));
   };
@@ -47,11 +53,13 @@ function ContextProvider({ children }) {
   const logIn = (email) => {
     const request = fetch(`${link}/auth/log`, {
       credentials: "include",
-
-      method: "POST",
-      body: {
-        email,
+      headers: {
+        "Content-Type": "application/json",
       },
+      method: "POST",
+      body: JSON.stringify({
+        email,
+      }),
     });
 
     request

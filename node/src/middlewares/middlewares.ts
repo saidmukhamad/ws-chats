@@ -7,23 +7,29 @@ import { SockerServer } from "./socket/socket";
 import { allowedList } from "../util/constants/allowedList";
 import { PORT } from "../util/constants";
 import auth from "./routes/auth/index";
+import { Server, Socket } from "socket.io";
+import { ParsedCookies } from "./socket/socket";
+import { ClientEvents } from "../util/constants/sockets/EventsList";
 
 export class Middlewares {
   app: Express;
   server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>;
-  socket: SockerServer;
+  socketServer: SockerServer;
 
   constructor(app: Express) {
     this.app = app;
     this.initMiddlewares();
+
     this.server = http.createServer(this.app);
-    this.socket = new SockerServer(this.server, {
-      cors: {
-        origin: allowedList,
-        credentials: true,
-      },
-      cookie: true,
-    });
+    this.socketServer = new SockerServer(
+      new Server<ClientEvents, ClientEvents>(this.server, {
+        cors: {
+          origin: allowedList,
+          credentials: true,
+        },
+        cookie: true,
+      })
+    );
     this.initRoutes();
     this.listen();
   }
@@ -46,9 +52,7 @@ export class Middlewares {
 
   private listen() {
     this.server.listen(PORT, () => {
-      console.log("server started", Date.now());
+      console.log("server started", new Date().toString());
     });
   }
-
-  private initSockets() {}
 }
