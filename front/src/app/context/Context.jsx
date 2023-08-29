@@ -1,6 +1,5 @@
 import React from "react";
-import { link } from "../../shared/constants/url";
-
+import { instance } from "../../shared/api/instance";
 const defaultContextValue = {
   user: {
     loggedIn: false,
@@ -24,17 +23,9 @@ function ContextProvider({ children }) {
   });
 
   const signIn = (email, password) => {
-    const request = fetch(`${link}/auth/reg`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-
-      body: JSON.stringify({
-        email,
-        password,
-      }),
+    const request = instance.post(`/auth/reg`, {
+      email,
+      password,
     });
 
     request
@@ -51,12 +42,7 @@ function ContextProvider({ children }) {
   };
 
   const logIn = (email) => {
-    const request = fetch(`${link}/auth/log`, {
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      method: "POST",
+    const request = instance.post(`/auth/log`, {
       body: JSON.stringify({
         email,
       }),
@@ -78,9 +64,9 @@ function ContextProvider({ children }) {
       loggedIn: false,
       email: "",
     });
-    const request = fetch(`${link}/auth/logout`, {
-      credentials: "include",
-    })
+
+    const request = instance
+      .get(`/auth/logout`)
       .then((d) => localStorage.removeItem("email"))
       .catch((e) => console.error(e));
   };
