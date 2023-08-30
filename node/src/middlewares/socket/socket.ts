@@ -168,7 +168,7 @@ export class SockerServer {
       });
 
       socket.on("disconnecting", () => {
-        let data: string[] = activeUsers.get(socket.data.email);
+        let data: string[] = activeUsers.get(socket.data.email) ?? [];
         data = data.filter((id) => id !== socket.id);
         if (data.length === 0) {
           activeUsers.delete(socket.data.email);

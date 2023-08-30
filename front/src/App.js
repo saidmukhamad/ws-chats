@@ -7,7 +7,7 @@ import { link } from "./shared/api/url";
 
 function App() {
   const [ioState, setIoState] = React.useState(null);
-  console.log(process.env, "ENV");
+
   React.useEffect(() => {
     if (ioState == null) {
       const ws = io(link, {
@@ -20,14 +20,8 @@ function App() {
     }
   }, []);
 
-  const send = () => {
-    if (ioState !== null) {
-      ioState.emit("message", "123");
-    }
-  };
   return (
     <div className="App">
-      <button onClick={send}>click</button>
       <Auth />
       <Chat />
     </div>

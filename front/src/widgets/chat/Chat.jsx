@@ -1,6 +1,13 @@
 import React from "react";
+import { Context } from "../../app/context/Context";
 
 function Chat() {
+  const context = React.useContext(Context);
+
+  if (!context.user.loggedIn) {
+    return null;
+  }
+
   return (
     <div
       style={{
