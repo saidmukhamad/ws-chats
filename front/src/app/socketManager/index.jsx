@@ -3,7 +3,6 @@ import { instance } from "../../shared/api/instance";
 import { Context } from "../context/Context";
 import io from "socket.io-client";
 import Auth from "@components/widgets/auth/Auth";
-
 const defaultContextValue = {
   user: {
     loggedIn: false,

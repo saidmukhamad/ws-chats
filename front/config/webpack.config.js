@@ -587,7 +587,8 @@ module.exports = function (webpackEnv) {
                 },
               }
             : undefined
-        )
+        ),
+        new webpack.HotModuleReplacementPlugin()
       ),
       // Inlines the webpack runtime script. This script is too small to warrant
       // a network request.
