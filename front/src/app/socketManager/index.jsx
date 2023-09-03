@@ -34,7 +34,6 @@ function SockProvider({ children }) {
 
   return (
     <SockContext.Provider value={{ user: state }}>
-      <Auth />
       {children}
     </SockContext.Provider>
   );

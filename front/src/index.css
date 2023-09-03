@@ -18,10 +18,13 @@ div {
 
 .auth-container {
   display: flex;
+  flex-direction: column;
   border: 1px solid black;
   max-width: 500px;
-  height: 150px;
-  border-bottom: 0;
+  border-radius: 3px;
+  padding: 5px;
+  height: 100%;
+  margin: 23ox;
 }
 
 .form-container {
@@ -29,4 +32,26 @@ div {
   flex-direction: column;
   max-width: 350px;
   align-items: center;
+}
+
+.auth-button-container {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  height: 32px;
+}
+
+button {
+  background-color: #0a0a23;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding-left: 12px;
+  padding-right: 12px;
+  min-width: 50px;
+  margin: 5px;
+}
+
+button:hover {
+  background-color: #46469d;
 }

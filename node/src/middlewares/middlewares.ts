@@ -10,6 +10,7 @@ import auth from "./routes/auth/index";
 import { Server, Socket } from "socket.io";
 import { ParsedCookies } from "./socket/socket";
 import { ClientEvents } from "../util/constants/sockets/EventsList";
+import { globalErrorHandler } from "../util/error/ErrorHandlers";
 
 export class Middlewares {
   app: Express;
@@ -30,7 +31,6 @@ export class Middlewares {
         cookie: true,
       })
     );
-    this.initRoutes();
     this.listen();
   }
 
@@ -44,6 +44,8 @@ export class Middlewares {
       })
     );
     app.use(cookieParser());
+    this.initRoutes();
+    app.use(globalErrorHandler);
   }
 
   private initRoutes() {

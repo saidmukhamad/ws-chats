@@ -11,8 +11,12 @@ function User() {
     <div className="auth-container">
       {!ctx.user.loggedIn ? (
         <>
-          <button onClick={() => setMode(1)}>войти</button>
-          <button onClick={() => setMode(0)}>зарегистрироваться</button>
+          <div className="auth-button-container">
+            <button className="button" onClick={() => setMode(1)}>
+              log in
+            </button>
+            <button onClick={() => setMode(0)}>register</button>
+          </div>
           {mode === 0 ? <SignIn /> : <LogIn />}
         </>
       ) : (
