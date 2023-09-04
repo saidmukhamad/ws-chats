@@ -14,6 +14,8 @@ export interface ServerEvents {
   "chat:join": (chatId, callback) => void;
   "chat:sendMessage": (chatId, message, callback) => void;
   "chat:look": (chatId, callback) => void;
+  "chat:list": () => void;
+  users: (list: number) => void;
 }
 
 const chatRoom = new Map();
@@ -35,8 +37,6 @@ export class SockerServer {
 
   private setupListeners(): void {
     this.server.on("connection", async (socket) => {
-      console.log(socket.id, "session identifier");
-
       socket.use(async (sock, next) => {
         try {
           const cookies = socket.handshake.headers.cookie || "";
@@ -70,6 +70,22 @@ export class SockerServer {
           const err = new Error("not authorized");
           err.message = "Please retry later";
           next(err);
+        }
+      });
+
+      socket.on("users", async (page) => {
+        try {
+          const users = await client.user.findMany({
+            skip: 10 * page,
+            select: {
+              id: true,
+              email: true,
+            },
+          });
+
+          socket.emit("users", users);
+        } catch (e) {
+          console.log(e);
         }
       });
 
@@ -149,9 +165,6 @@ export class SockerServer {
         }
       );
 
-      /**
-       * TODO: add pagination
-       */
       socket.on("chat:look", async (chatId, callback) => {
         try {
           const look = await client.chat.findUnique({
@@ -174,6 +187,8 @@ export class SockerServer {
           activeUsers.delete(socket.data.email);
         } else activeUsers.set(socket.data.email, data);
       });
+
+      socket.on("chat:list", () => {});
     });
 
     this.server.on("connect_error", (err) => {

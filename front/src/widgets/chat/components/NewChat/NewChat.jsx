@@ -1,11 +1,16 @@
 import React from "react";
 import ActiveUsers from "./components/ActiveUsers/ActiveUsers";
+import { SockContext } from "@components/app/socketManager";
 
 function NewChat() {
-  // TODO: Function in props all call context
+  const context = React.useContext(SockContext);
+
+  React.useEffect(() => {
+    context.actions.getUsers();
+  }, []);
   return (
     <div>
-      <ActiveUsers />
+      <ActiveUsers users={context.state.userList} />
     </div>
   );
 }

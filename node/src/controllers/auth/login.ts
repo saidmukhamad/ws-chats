@@ -19,7 +19,7 @@ export const login = async (
       });
     }
 
-    res.cookie("user", user.email);
+    res.cookie("email", user.email);
     res.status(200).json({
       ok: true,
       data: user,

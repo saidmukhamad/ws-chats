@@ -57,10 +57,41 @@ button:hover {
 }
 
 .chat-container {
+  margin-top: 12px;
+
   padding: 5px;
   display: flex;
   flex-direction: column;
   width: 500px;
   height: 800px;
   border: 0.5px solid black;
+}
+
+.panel {
+  position: absolute;
+  flex-direction: column;
+  display: flex;
+  /* justify-content: center; */
+  align-items: center;
+  width: 500px;
+  height: 150px;
+  background-color: wheat;
+}
+
+.panel-item {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.panel-item-log {
+  flex-direction: column;
+  align-items: center;
+  justify-content: start;
+  overflow-y: scroll;
+  height: 100%;
+}
+
+.panel-item-log::-webkit-scrollbar {
+  display: none;
 }
