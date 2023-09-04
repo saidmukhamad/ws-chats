@@ -55,3 +55,12 @@ button {
 button:hover {
   background-color: #46469d;
 }
+
+.chat-container {
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  width: 500px;
+  height: 800px;
+  border: 0.5px solid black;
+}

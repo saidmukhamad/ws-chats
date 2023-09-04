@@ -1,5 +1,11 @@
 import React from "react";
-import { Context } from "../../app/context/Context";
+import { Context } from "@components/app/context/Context";
+
+import ActiveChat from "./components/ActiveChat/ActiveChat";
+import ChatList from "./components/ChatList/ChatList";
+import NewChat from "./components/NewChat/NewChat";
+
+import { Routes, Route } from "react-router-dom";
 
 function Chat() {
   const context = React.useContext(Context);
@@ -9,14 +15,13 @@ function Chat() {
   }
 
   return (
-    <div
-      style={{
-        width: "500px",
-        height: "800px",
-        border: "0.5px solid black",
-      }}
-    >
-      Chat
+    <div className="chat-container">
+      <Routes>
+        <Route path="/" element={<ChatList />} />
+        <Route path="/chat" element={<ActiveChat />} />
+        <Route path="/new" element={<NewChat />} />
+        <Route />
+      </Routes>
     </div>
   );
 }

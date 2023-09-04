@@ -1,4 +1,5 @@
 import "./App.css";
+import "./index.css";
 import io from "socket.io-client";
 import React from "react";
 import Chat from "./widgets/chat/Chat";
