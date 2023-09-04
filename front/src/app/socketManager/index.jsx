@@ -1,12 +1,13 @@
 import React from "react";
-import io from "socket.io-client";
+import io, { Socket, DefaultEventsMap } from "socket.io-client";
 
 import { Context } from "../context/Context";
 import { link } from "../../shared/api/instance";
 import useDrag from "@components/shared/utils/useDrag";
+
 const defaultContextValue = {
   state: {
-    chats: [],
+    chats: new Map(),
     activeChat: {},
     userList: [],
   },
@@ -31,9 +32,13 @@ function SockProvider({ children }) {
   });
 
   const socketConnection = React.useRef(null);
+  /**
+   * @type {Socket<DefaultEventsMap, DefaultEventsMap>}
+   */
   const socket = socketConnection.current;
+
   const [chatState, setChatState] = React.useState({
-    chats: [],
+    chats: new Map(),
     activeChat: {},
     userList: [],
   });
@@ -47,6 +52,7 @@ function SockProvider({ children }) {
       });
 
       socketConnection.current = ws;
+
       ws.on("users", (data) => {
         setChatState((prev) => ({
           ...prev,
@@ -55,20 +61,75 @@ function SockProvider({ children }) {
 
         setActionsList((prev) => [...prev, "users came [sock]"]);
       });
+      /**
+       * Represents a participant.
+       * @typedef {Object} Participant
+       * @property {string} id - The participant's id.
+       * @property {string} email - The participant's email address.
+       */
+
+      /**
+       * Represents data for the chat:create event.
+       * @typedef {Object} ChatCreateData
+       * @property {string} chatId - The chat's ID.
+       * @property {Participant[]} participants - The list of users participating in the chat.
+       */
+
+      ws.on(
+        "chat:create",
+        /**
+         * Event listener for the chat:create event.
+         *
+         * @param {ChatCreateData} data - The data for the chat:create event.
+         */ (data) => {
+          setChatState((prev) => ({
+            ...prev,
+            chats: [
+              ...prev.chats,
+              {
+                ...data,
+                messages: [],
+              },
+            ],
+          }));
+        }
+      );
+
+      /**
+       * @typedef {Object} Message
+       * @property {string} id
+       * @property {string} body
+       * @property {string} type
+       */
+
+      /**
+       * Represents data for the chat:create event.
+       * @typedef {Object} ChatMessage
+       * @property {string} chatId - The chat's ID.
+       * @property {Message} participants - The list of users participating in the chat.
+       */
+
+      ws.on(
+        "chat:message",
+        /**
+         * Event listener for the chat:create event.
+         *
+         * @param {ChatMessage} data - The data for the chat:create event.
+         */
+        (data) => {}
+      );
     }
   }, []);
 
   const createChatWS = async (id) => {
     try {
+      if (socket !== null) {
+        socket.emit("chat:create", id);
+      }
     } catch (error) {}
   };
 
-  const connect = () => {
-    try {
-    } catch (error) {}
-  };
-
-  const sendMessageWS = async () => {
+  const sendMessageWS = async (id, type, body) => {
     try {
       if (socket !== null) {
       }
@@ -83,7 +144,7 @@ function SockProvider({ children }) {
   const getUserListWS = async () => {
     try {
       if (socket !== null) {
-        const test = socket.emit("users", 0);
+        socket.emit("users", 0);
       }
     } catch (error) {}
   };
@@ -96,14 +157,9 @@ function SockProvider({ children }) {
 
   return (
     <SockContext.Provider value={{ state: chatState, actions: actions }}>
-      <div
-        ref={ref}
-        // style={{ left: `${position.x}px`, top: `${position.y}px` }}
-        className="panel"
-      >
+      <div ref={ref} className="panel">
         <div className="panel-item">
           <button onClick={createChatWS}>create chat</button>
-          <button onClick={connect}>connect</button>
           <button onClick={sendMessageWS}>write in chat</button>
           <button onClick={getUserListWS}>getUserListWS</button>
         </div>

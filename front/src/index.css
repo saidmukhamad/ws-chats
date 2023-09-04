@@ -95,3 +95,11 @@ button:hover {
 .panel-item-log::-webkit-scrollbar {
   display: none;
 }
+
+.row-flex {
+  display: flex;
+  justify-content: space-between;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin-bottom: 8px;
+}

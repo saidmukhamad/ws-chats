@@ -19,7 +19,10 @@ function ActiveUsers({ users }) {
   return (
     <div>
       {users.map((user) => (
-        <p key={user.id}>{user.email}</p>
+        <div key={user.id} className="row-flex">
+          <p>{user.email}</p>
+          <button>open chat</button>
+        </div>
       ))}
     </div>
   );

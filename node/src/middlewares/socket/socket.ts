@@ -14,19 +14,19 @@ export interface ServerEvents {
   "chat:join": (chatId, callback) => void;
   "chat:sendMessage": (chatId, message, callback) => void;
   "chat:look": (chatId, callback) => void;
-  "chat:list": () => void;
+  "chat:list": (list: number) => void;
+  "chat:messages": (id: string, page: number) => void;
   users: (list: number) => void;
 }
 
-const chatRoom = new Map();
-const activeUsers = new Map<string, string[]>();
+const activeUsers = new Map<string, Set<string>>();
 
 export class SockerServer {
   private server: Server<
     ServerEvents,
     any,
     any,
-    { cookies: { email: string }; email: string }
+    { cookies: { email: string }; email: string; id: string }
   >;
 
   constructor(server_: Server) {
@@ -60,10 +60,15 @@ export class SockerServer {
               throw Error("not authorized");
             }
             socket.data.email = parsedCookies.email;
-            activeUsers.set(data.email, [
-              ...(activeUsers.get(data.email) ?? []),
-              socket.id,
-            ]);
+            socket.data.id = data.id;
+
+            if (activeUsers.has(data.email)) {
+              activeUsers.set(
+                data.email,
+                activeUsers.get(data.email)?.add(socket.id) as Set<string>
+              );
+            } else
+              activeUsers.set(data.email, new Set<string>().add(socket.id));
             next();
           }
         } catch (error) {
@@ -77,6 +82,11 @@ export class SockerServer {
         try {
           const users = await client.user.findMany({
             skip: 10 * page,
+            where: {
+              email: {
+                not: socket.data.email,
+              },
+            },
             select: {
               id: true,
               email: true,
@@ -86,6 +96,28 @@ export class SockerServer {
           socket.emit("users", users);
         } catch (e) {
           console.log(e);
+        }
+      });
+
+      socket.on("chat:messages", async (id: string, page: number) => {
+        try {
+          const data = await client.chat.findUnique({
+            where: {
+              id: id,
+            },
+            include: {
+              messages: {
+                orderBy: {
+                  createdAt: "desc",
+                },
+                skip: page,
+              },
+            },
+          });
+
+          socket.emit("chat:messages", data);
+        } catch (error) {
+          console.log(error);
         }
       });
 
@@ -143,6 +175,14 @@ export class SockerServer {
                   },
                 },
               },
+              include: {
+                participants: {
+                  select: {
+                    id: true,
+                    email: true,
+                  },
+                },
+              },
             });
 
             if (chat) {
@@ -155,7 +195,7 @@ export class SockerServer {
               for (let s of socketIds) {
                 socket.to(s).emit("chat:create", {
                   chatId: chat.id,
-                  participants: chat.participantsId,
+                  emails: chat.participants,
                 });
               }
             }
@@ -180,10 +220,24 @@ export class SockerServer {
         } catch (error) {}
       });
 
+      socket.on("chat:list", async (page) => {
+        try {
+          const list = await client.chat.findMany({
+            where: {
+              participantsId: {
+                has: socket.data.id,
+              },
+            },
+          });
+        } catch (error) {
+          console.log(error);
+        }
+      });
+
       socket.on("disconnecting", () => {
-        let data: string[] = activeUsers.get(socket.data.email) ?? [];
-        data = data.filter((id) => id !== socket.id);
-        if (data.length === 0) {
+        let data: Set<string> = activeUsers.get(socket.data.email) ?? new Set();
+        data.delete(socket.id);
+        if (data.size === 0) {
           activeUsers.delete(socket.data.email);
         } else activeUsers.set(socket.data.email, data);
       });
