@@ -12,7 +12,9 @@ const defaultContextValue = {
     userList: [],
   },
   actions: {
-    getUsers: () => 1,
+    getUsers: (page) => 1,
+    createChat: (id) => 1,
+    getChatList: (page) => 1,
   },
 };
 
@@ -61,6 +63,11 @@ function SockProvider({ children }) {
 
         setActionsList((prev) => [...prev, "users came [sock]"]);
       });
+
+      ws.on("chat:list", (data) => {
+        console.log(data);
+      });
+
       /**
        * Represents a participant.
        * @typedef {Object} Participant
@@ -82,6 +89,8 @@ function SockProvider({ children }) {
          *
          * @param {ChatCreateData} data - The data for the chat:create event.
          */ (data) => {
+          console.log("MESSAGE CAMEE");
+          console.log(data);
           setChatState((prev) => ({
             ...prev,
             chats: [
@@ -149,10 +158,20 @@ function SockProvider({ children }) {
     } catch (error) {}
   };
 
+  const getChatListWS = async (page = 0) => {
+    try {
+      socket.emit("chat:list", page);
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
   const { ref } = useDrag();
 
   const actions = {
     getUsers: getUserListWS,
+    createChat: createChatWS,
+    getChatList: getChatListWS,
   };
 
   return (

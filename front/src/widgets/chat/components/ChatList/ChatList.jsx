@@ -1,7 +1,19 @@
 import React from "react";
-
+import { SockContext } from "@components/app/socketManager";
 function ChatList() {
-  return <div>ChatList</div>;
+  const context = React.useContext(SockContext);
+
+  React.useEffect(() => {
+    context.actions.getChatList();
+  }, []);
+
+  return (
+    <div>
+      {Array.from(context.state.chats).map((chat) => (
+        <div></div>
+      ))}
+    </div>
+  );
 }
 
 export default ChatList;

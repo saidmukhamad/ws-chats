@@ -125,6 +125,10 @@ export class SockerServer {
         "chat:create",
         async (users: string[] | { id: string }[], callback) => {
           try {
+            console.log("aws here?");
+            if (typeof users === "string") {
+              users = [users];
+            }
             users = users.map((id) => ({ id }));
             const chat = await client.chat.create({
               data: {
@@ -140,8 +144,17 @@ export class SockerServer {
             if (chat) {
               const socketIds: string[] = [];
               for (let id of chat.participantsId) {
-                const test = activeUsers.get(id) ?? [];
-                socketIds.push(...(activeUsers.get(id) ?? []));
+                console.log(activeUsers);
+                const users = chat.participants.map((v) => v.email);
+                const test = (
+                  users.map((d) =>
+                    Array.from(activeUsers.get(d) ?? new Set())
+                  ) ?? []
+                ).flat() as string[];
+
+                console.log(test, "test");
+
+                socketIds.push(...(test ?? []));
               }
 
               for (let s of socketIds) {
@@ -151,7 +164,9 @@ export class SockerServer {
                 });
               }
             }
-          } catch (error) {}
+          } catch (error) {
+            console.log(error);
+          }
         }
       );
 
@@ -220,7 +235,7 @@ export class SockerServer {
         } catch (error) {}
       });
 
-      socket.on("chat:list", async (page) => {
+      socket.on("chat:list", async (page = 0) => {
         try {
           const list = await client.chat.findMany({
             where: {
@@ -228,7 +243,21 @@ export class SockerServer {
                 has: socket.data.id,
               },
             },
+            skip: 15 * page,
+            orderBy: {
+              createdAt: "desc",
+            },
+            include: {
+              messages: {
+                orderBy: {
+                  createdAt: "desc",
+                },
+                take: 1,
+              },
+            },
           });
+
+          socket.emit("chat:list", list);
         } catch (error) {
           console.log(error);
         }

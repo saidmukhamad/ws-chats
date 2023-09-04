@@ -8,9 +8,13 @@ function NewChat() {
   React.useEffect(() => {
     context.actions.getUsers();
   }, []);
+
   return (
     <div>
-      <ActiveUsers users={context.state.userList} />
+      <ActiveUsers
+        create={context.actions.createChat}
+        users={context.state.userList}
+      />
     </div>
   );
 }

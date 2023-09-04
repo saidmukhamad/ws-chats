@@ -20,17 +20,12 @@ model User {
   messages            Message[]
 }
 
-
-
-
-
 model Message {
   id String @id @default(auto()) @map("_id") @db.ObjectId
   
   chat    Chat  @relation(name: "chatMessages", fields: [chatId], references: [id])
-  chatId  String @db.ObjectId
+  chatId  String @db.ObjectId @unique
 
-  isLatestIn      Chat? @relation("latestChatMessage")
 
   senderId        String        @db.ObjectId
   sender          User          @relation(fields: [senderId], references: [id])
@@ -45,15 +40,10 @@ model Chat {
   participants                  User[]      @relation(fields: [participantsId], references: [id])
   participantsId          String[]    @db.ObjectId
   
-
-
   messages        Message[]  @relation("chatMessages")
-  latestMessage   Message?   @relation(name: "latestChatMessage", fields: [latestMessageId], references: [id], onUpdate: NoAction, onDelete: NoAction)
-  latestMessageId String?    @unique @db.ObjectId
 
   name            String?
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
-
 }
