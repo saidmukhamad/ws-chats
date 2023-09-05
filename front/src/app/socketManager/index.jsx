@@ -68,6 +68,10 @@ function SockProvider({ children }) {
         console.log(data);
       });
 
+      ws.on("trigger", () => {
+        setActionsList((prev) => [...prev, "triggered from node"]);
+      });
+
       /**
        * Represents a participant.
        * @typedef {Object} Participant
@@ -89,7 +93,6 @@ function SockProvider({ children }) {
          *
          * @param {ChatCreateData} data - The data for the chat:create event.
          */ (data) => {
-          console.log("MESSAGE CAMEE");
           console.log(data);
           setChatState((prev) => ({
             ...prev,
@@ -166,6 +169,16 @@ function SockProvider({ children }) {
     }
   };
 
+  const trigger = () => {
+    try {
+      if (socket) {
+        socket.emit("trigger");
+      }
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
   const { ref } = useDrag();
 
   const actions = {
@@ -181,6 +194,7 @@ function SockProvider({ children }) {
           <button onClick={createChatWS}>create chat</button>
           <button onClick={sendMessageWS}>write in chat</button>
           <button onClick={getUserListWS}>getUserListWS</button>
+          <button onClick={trigger}>trigger</button>
         </div>
         <div className="panel-item panel-item-log">
           <p>actions log</p>

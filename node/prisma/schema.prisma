@@ -8,42 +8,79 @@ datasource db {
 }
 
 
-model User {
-  id                  String    @id @default(auto()) @map("_id") @db.ObjectId
-  email               String    @unique
-  name                String?
+// model User {
+//   id                  String    @id @default(auto()) @map("_id") @db.ObjectId
+//   email               String    @unique
+//   name                String?
   
-  password            String  
+//   password            String  
 
-  chats               Chat[]      @relation(fields: [chatsId], references: [id])
-  chatsId             String[]    @db.ObjectId
-  messages            Message[]
-}
+//   chats               Chat[]      @relation(fields: [chatsId], references: [id])
+//   chatsId             String[]    @db.ObjectId
+//   messages            Message[]
+// }
 
 model Message {
   id String @id @default(auto()) @map("_id") @db.ObjectId
   
-  chat    Chat  @relation(name: "chatMessages", fields: [chatId], references: [id])
+  chat    Chat  @relation(name: "chatMessages", fields: [chatId], references: [id], onDelete: Cascade)
   chatId  String @db.ObjectId @unique
 
 
-  senderId        String        @db.ObjectId
-  sender          User          @relation(fields: [senderId], references: [id])
+  senderId        String?        @db.ObjectId
+  sender          User?          @relation(fields: [senderId], references: [id], onDelete: SetNull)
 
   body            String
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 }
 
-model Chat {
-  id              String @id @default(auto()) @map("_id") @db.ObjectId
-  participants                  User[]      @relation(fields: [participantsId], references: [id])
-  participantsId          String[]    @db.ObjectId
+// model Chat {
+//   id              String @id @default(auto()) @map("_id") @db.ObjectId
+//   participants    User[]      @relation(fields: [participantsId], references: [id])
+//   participantsId  String[]    @db.ObjectId
   
-  messages        Message[]  @relation("chatMessages")
+//   messages        Message[]  @relation("chatMessages")
 
-  name            String?
+//   name            String?
 
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+//   createdAt       DateTime  @default(now())
+//   updatedAt       DateTime  @updatedAt
+// }
+
+model User {
+  id       String     @id @default(auto()) @map("_id") @db.ObjectId
+  email    String     @unique
+  name     String?
+
+  password String  
+
+  userChats UserChat[]
+  messages  Message[]
 }
+
+model Chat {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  userChats   UserChat[]
+  
+  messages    Message[]  @relation("chatMessages")
+
+  name        String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model UserChat {
+  id      String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId  String  @db.ObjectId
+  chatId  String  @db.ObjectId
+
+  user    User    @relation(fields: [userId], references: [id])
+  chat    Chat    @relation(fields: [chatId], references: [id])
+
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, chatId])
+}
+

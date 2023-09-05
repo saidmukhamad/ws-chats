@@ -1,10 +1,9 @@
 import { Server, ServerOptions, Socket } from "socket.io";
-import http from "node:http";
-import { Http2SecureServer } from "node:http2";
 import type { Server as HTTPSServer } from "https";
 import { parse } from "cookie";
 import { client } from "../../util/helpers/prismaClient";
-import { User } from "@prisma/client";
+import { UserChatCreateManyChatInput } from "@prisma/client/generator-build/index";
+import { randomUUID } from "node:crypto";
 export interface ParsedCookies {
   [key: string]: string;
 }
@@ -16,6 +15,7 @@ export interface ServerEvents {
   "chat:look": (chatId, callback) => void;
   "chat:list": (list: number) => void;
   "chat:messages": (id: string, page: number) => void;
+  trigger: () => void;
   users: (list: number) => void;
 }
 
@@ -78,6 +78,19 @@ export class SockerServer {
         }
       });
 
+      socket.on("trigger", () => {
+        console.log(socket.rooms, "rooms");
+        console.log(activeUsers, "active users");
+        Array.from(activeUsers).forEach((s) => {
+          Array.from(s[1]).forEach((id) => {
+            console.log("was here", id);
+            console.log(socket.id);
+            socket.to(id).emit("trigger", "asd");
+          });
+        });
+        socket.emit("trigger", "asd");
+      });
+
       socket.on("users", async (page) => {
         try {
           const users = await client.user.findMany({
@@ -120,81 +133,98 @@ export class SockerServer {
           console.log(error);
         }
       });
-
-      socket.on(
-        "chat:create",
-        async (users: string[] | { id: string }[], callback) => {
-          try {
-            console.log("aws here?");
-            if (typeof users === "string") {
-              users = [users];
-            }
-            users = users.map((id) => ({ id }));
-            const chat = await client.chat.create({
-              data: {
-                participants: {
-                  connect: users,
+      socket.on("chat:create", async (chatParticipant: string, callback) => {
+        try {
+          const users = [chatParticipant, socket.data.id];
+          const usersId = users.map((id) => ({ id }));
+          // console.log(users, usersId);
+          // console.log(
+          //   ...(usersId.map((data) => ({
+          //     id: data.id,
+          //   })) as UserChatCreateManyChatInput)
+          // );
+          const chat = await client.chat.create({
+            data: {
+              name: randomUUID(),
+              userChats: {
+                createMany: {
+                  data: [
+                    ...(usersId.map((data) => ({
+                      userId: data.id,
+                    })) as UserChatCreateManyChatInput),
+                  ],
                 },
               },
-              include: {
-                participants: true,
+            },
+            include: {
+              userChats: {
+                include: {
+                  user: {
+                    select: {
+                      email: true,
+                    },
+                  },
+                },
               },
-            });
+            },
+          });
 
-            if (chat) {
-              const socketIds: string[] = [];
-              for (let id of chat.participantsId) {
-                console.log(activeUsers);
-                const users = chat.participants.map((v) => v.email);
-                const test = (
-                  users.map((d) =>
-                    Array.from(activeUsers.get(d) ?? new Set())
-                  ) ?? []
-                ).flat() as string[];
+          if (chat) {
+            const socketIds: string[] = [];
+            for (let id of chat.userChats) {
+              const users = chat.userChats.map((v) => v.user.email);
+              const test = (
+                users.map((d) => Array.from(activeUsers.get(d) ?? new Set())) ??
+                []
+              ).flat() as string[];
 
-                console.log(test, "test");
+              console.log(test, "test");
 
-                socketIds.push(...(test ?? []));
-              }
-
-              for (let s of socketIds) {
-                socket.to(s).emit("chat:create", {
-                  chatId: chat.id,
-                  participants: chat.participantsId,
-                });
-              }
+              socketIds.push(...(test ?? []));
             }
-          } catch (error) {
-            console.log(error);
+
+            for (let s of socketIds) {
+              socket.to(s).emit("chat:create", {
+                chatId: chat.id,
+                participants: users,
+              });
+            }
           }
+        } catch (error) {
+          console.log(error);
         }
-      );
+      });
 
       socket.on(
         "chat:sendMessage",
         async (chatId: string, message: string, callback) => {
           try {
-            const chat = await client.chat.update({
-              where: {
-                id: chatId,
-              },
+            const chat = await client.message.create({
               data: {
-                messages: {
-                  create: {
-                    body: message,
-                    sender: {
-                      connect: {
-                        email: socket.data.email,
-                      },
-                    },
+                body: message,
+                chat: {
+                  connect: {
+                    id: chatId,
+                  },
+                },
+                sender: {
+                  connect: {
+                    id: socket.data.id,
                   },
                 },
               },
               include: {
-                participants: {
-                  select: {
-                    id: true,
-                    email: true,
+                chat: {
+                  include: {
+                    userChats: {
+                      select: {
+                        user: {
+                          select: {
+                            email: true,
+                          },
+                        },
+                      },
+                    },
                   },
                 },
               },
@@ -202,15 +232,17 @@ export class SockerServer {
 
             if (chat) {
               const socketIds: string[] = [];
-              for (let id of chat.participantsId) {
-                const test = activeUsers.get(id) ?? [];
-                socketIds.push(...(activeUsers.get(id) ?? []));
+              const participants: string[] = [];
+              for (let id of chat.chat.userChats) {
+                const test = activeUsers.get(id.user.email) ?? [];
+                participants.push(id.user.email);
+                socketIds.push(...Array.from(test));
               }
 
               for (let s of socketIds) {
-                socket.to(s).emit("chat:create", {
+                socket.to(s).emit("chat:sendMessage", {
                   chatId: chat.id,
-                  emails: chat.participants,
+                  message,
                 });
               }
             }
@@ -237,22 +269,24 @@ export class SockerServer {
 
       socket.on("chat:list", async (page = 0) => {
         try {
-          const list = await client.chat.findMany({
+          const list = await client.userChat.findMany({
             where: {
-              participantsId: {
-                has: socket.data.id,
-              },
+              userId: socket.data.id,
             },
             skip: 15 * page,
             orderBy: {
               createdAt: "desc",
             },
             include: {
-              messages: {
-                orderBy: {
-                  createdAt: "desc",
+              chat: {
+                include: {
+                  messages: {
+                    orderBy: {
+                      createdAt: "desc",
+                    },
+                    take: 1,
+                  },
                 },
-                take: 1,
               },
             },
           });
