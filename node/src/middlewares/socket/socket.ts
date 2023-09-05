@@ -79,12 +79,8 @@ export class SockerServer {
       });
 
       socket.on("trigger", () => {
-        console.log(socket.rooms, "rooms");
-        console.log(activeUsers, "active users");
         Array.from(activeUsers).forEach((s) => {
           Array.from(s[1]).forEach((id) => {
-            console.log("was here", id);
-            console.log(socket.id);
             socket.to(id).emit("trigger", "asd");
           });
         });
@@ -137,12 +133,7 @@ export class SockerServer {
         try {
           const users = [chatParticipant, socket.data.id];
           const usersId = users.map((id) => ({ id }));
-          // console.log(users, usersId);
-          // console.log(
-          //   ...(usersId.map((data) => ({
-          //     id: data.id,
-          //   })) as UserChatCreateManyChatInput)
-          // );
+
           const chat = await client.chat.create({
             data: {
               name: randomUUID(),
@@ -277,21 +268,41 @@ export class SockerServer {
             orderBy: {
               createdAt: "desc",
             },
-            include: {
+            select: {
               chat: {
-                include: {
+                select: {
+                  id: true,
                   messages: {
                     orderBy: {
                       createdAt: "desc",
                     },
                     take: 1,
+                    select: {
+                      body: true,
+                      senderId: true,
+                    },
+                  },
+                  userChats: {
+                    select: {
+                      user: {
+                        select: {
+                          email: true,
+                        },
+                      },
+                    },
                   },
                 },
               },
             },
           });
 
-          socket.emit("chat:list", list);
+          const data = list.map((l) => ({
+            id: l.chat.id,
+            messages: l.chat.messages,
+            users: l.chat.userChats.map((d) => d.user.email),
+          }));
+
+          socket.emit("chat:list", data);
         } catch (error) {
           console.log(error);
         }

@@ -65,7 +65,7 @@ function SockProvider({ children }) {
       });
 
       ws.on("chat:list", (data) => {
-        console.log(data);
+        setChatState((prev) => ({ ...prev, chats: data }));
       });
 
       ws.on("trigger", () => {

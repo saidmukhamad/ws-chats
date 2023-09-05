@@ -10,7 +10,7 @@ function ChatList() {
   return (
     <div>
       {Array.from(context.state.chats).map((chat) => (
-        <div></div>
+        <div key={chat.id}>{chat.id}</div>
       ))}
     </div>
   );
