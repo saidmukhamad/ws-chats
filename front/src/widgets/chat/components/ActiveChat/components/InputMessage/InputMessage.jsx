@@ -10,6 +10,8 @@ function InputMessage({ message, email }) {
       >
         sender {message.sender}
       </p>
+      {!message.read.read && <p>не прочитано</p>}
+
       <p className="message-body">{message.body}</p>
     </div>
   );

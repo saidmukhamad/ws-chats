@@ -385,7 +385,6 @@ export class SockerServer {
               },
             },
           });
-          console.log(look?.messages[0].readReceipts);
 
           const messages = look?.messages.map((m) => ({
             body: m.body,

@@ -11,11 +11,9 @@ function ActiveChat() {
   React.useEffect(() => {
     if (!(context.state.activeChat.chat.id === params.id)) {
       context.actions.setChat(params.id);
+    } else {
+      context.actions.readMessages(context.state.activeChat.chat.id);
     }
-  }, []);
-
-  React.useEffect(() => {
-    console.log(context.state.activeChat, "active chat");
   }, [context.state.activeChat]);
 
   return (
