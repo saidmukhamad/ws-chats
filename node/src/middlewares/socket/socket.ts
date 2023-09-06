@@ -196,13 +196,31 @@ export class SockerServer {
 
       socket.on("chat:sendMessage", async ({ id, body }) => {
         try {
-          console.log(id);
+          const recipient = await client.chat.findUnique({
+            where: {
+              id,
+            },
+            select: {
+              userChats: true,
+            },
+          });
+
+          const map =
+            recipient?.userChats.map((u) => ({
+              userId: u.userId,
+              read: u.userId === socket.data.id,
+            })) ?? [];
           const chat = await client.message.create({
             data: {
               body: body,
               chat: {
                 connect: {
                   id: id,
+                },
+              },
+              readReceipts: {
+                createMany: {
+                  data: [...map],
                 },
               },
               sender: {
@@ -244,11 +262,14 @@ export class SockerServer {
               id: chat.id,
               body: chat.body,
               sender: chat.sender?.email,
+              read: false,
             };
 
             for (let s of socketIds) {
               socket.to(s).emit("chat:message", data);
             }
+
+            data.read = true;
             socket.emit("chat:message", data);
           }
         } catch (error) {
@@ -267,7 +288,7 @@ export class SockerServer {
               name: true,
               messages: {
                 orderBy: {
-                  createdAt: "desc",
+                  createdAt: "asc",
                 },
                 select: {
                   body: true,

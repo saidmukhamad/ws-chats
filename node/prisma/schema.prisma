@@ -12,6 +12,7 @@ model Message {
   
   chat    Chat  @relation(name: "chatMessages", fields: [chatId], references: [id], onDelete: Cascade)
   chatId  String @db.ObjectId
+  readReceipts   MessageReadReceipt[]
 
 
   senderId        String?        @db.ObjectId
@@ -28,7 +29,8 @@ model User {
   name     String?
 
   password String  
-
+  readReceipts   MessageReadReceipt[]
+  
   userChats UserChat[]
   messages  Message[]
 }
@@ -58,3 +60,18 @@ model UserChat {
   @@unique([userId, chatId])
 }
 
+
+model MessageReadReceipt {
+  id      String  @id @default(auto()) @map("_id") @db.ObjectId
+  
+  messageId  String  @db.ObjectId
+  userId     String  @db.ObjectId
+
+  message    Message @relation(fields: [messageId], references: [id])
+  user       User    @relation(fields: [userId], references: [id])
+
+  read        Boolean
+  readAt     DateTime @default(now())
+
+  @@unique([messageId, userId])
+}
