@@ -1,7 +1,18 @@
 import React from "react";
 
-function InputMessage() {
-  return <div>InputMessage</div>;
+function InputMessage({ message, email }) {
+  console.log(message);
+  return (
+    <div className="message">
+      <p
+        data-sender={`${message.sender == email ? "1" : 0}`}
+        className="sender"
+      >
+        sender {message.sender}
+      </p>
+      <p className="message-body">{message.body}</p>
+    </div>
+  );
 }
 
 export default InputMessage;

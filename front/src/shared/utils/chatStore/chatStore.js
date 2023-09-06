@@ -14,19 +14,13 @@ export class ChatStore {
   populateFromData(data) {
     if (data instanceof Array) {
       for (const chat of data) {
-        console.log(chat, "chat in populate");
-        const messagesObject = [];
-        chat.messages.forEach((message) => {
-          messagesObject.push(message);
-        });
-
         const usersObject = [];
         chat.users.forEach((user) => {
           usersObject.push(user);
         });
 
         this.chatsMap.set(chat.id, {
-          messages: messagesObject,
+          messages: chat.messages,
           users: usersObject,
         });
       }

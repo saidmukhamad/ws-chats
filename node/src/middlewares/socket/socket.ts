@@ -15,12 +15,57 @@ export interface ServerEvents {
   "chat:look": (chatId, callback) => void;
   "chat:list": (list: number) => void;
   "chat:messages": (id: string, page: number) => void;
+  "chat:read": (id: string) => void;
   trigger: () => void;
   users: (list: number) => void;
 }
 
 const activeUsers = new Map<string, Set<string>>();
 
+const getChatUsers = async (
+  id: string
+): Promise<Array<{ id: string; email: string }>> => {
+  try {
+    const users = await client.chat.findUnique({
+      where: {
+        id: id,
+      },
+      select: {
+        userChats: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return users?.userChats.map((u) => u.user) ?? [];
+  } catch (error) {
+    console.log(error);
+    return [];
+  }
+};
+
+const getParticipants = (
+  id: string,
+  users: { id: string; email: string }[]
+) => {
+  const socketIds: string[] = [];
+  const participants: string[] = [];
+
+  for (let id of users) {
+    const test = activeUsers.get(id.email) ?? [];
+    participants.push(id.email);
+    socketIds.push(...Array.from(test));
+  }
+
+  return socketIds;
+};
 export class SockerServer {
   private server: Server<
     ServerEvents,
@@ -204,12 +249,14 @@ export class SockerServer {
               userChats: true,
             },
           });
-
           const map =
-            recipient?.userChats.map((u) => ({
-              userId: u.userId,
-              read: u.userId === socket.data.id,
-            })) ?? [];
+            recipient?.userChats
+              .filter((i) => i.userId !== socket.data.id)
+              .map((u) => ({
+                userId: u.userId,
+                read: false,
+              })) ?? [];
+
           const chat = await client.message.create({
             data: {
               body: body,
@@ -231,6 +278,17 @@ export class SockerServer {
             },
             include: {
               sender: true,
+              readReceipts: {
+                select: {
+                  read: true,
+                  readAt: true,
+                  user: {
+                    select: {
+                      email: true,
+                    },
+                  },
+                },
+              },
               chat: {
                 include: {
                   userChats: {
@@ -262,18 +320,47 @@ export class SockerServer {
               id: chat.id,
               body: chat.body,
               sender: chat.sender?.email,
-              read: false,
+              read: chat.readReceipts.map((rr) => ({
+                read: rr.read,
+                readAt: rr.readAt,
+                user: rr.user.email,
+              }))[0],
             };
 
             for (let s of socketIds) {
               socket.to(s).emit("chat:message", data);
             }
 
-            data.read = true;
             socket.emit("chat:message", data);
           }
         } catch (error) {
           console.error(error);
+        }
+      });
+
+      socket.on("chat:read", async (id) => {
+        try {
+          const updatedReceipts = await client.messageReadReceipt.updateMany({
+            where: {
+              message: {
+                chatId: id,
+              },
+              userId: socket.data.id,
+            },
+            data: {
+              read: true,
+            },
+          });
+          const users = await getChatUsers(id);
+          const participants = getParticipants(id, users);
+
+          for (let user of participants) {
+            socket.to(user).emit("chat:read", {
+              id,
+            });
+          }
+        } catch (error) {
+          console.log(error);
         }
       });
 
@@ -292,15 +379,22 @@ export class SockerServer {
                 },
                 select: {
                   body: true,
+                  readReceipts: true,
                   sender: { select: { email: true } },
                 },
               },
             },
           });
+          console.log(look?.messages[0].readReceipts);
 
           const messages = look?.messages.map((m) => ({
-            ...m,
+            body: m.body,
             sender: m.sender?.email,
+            read: {
+              read: m.readReceipts[0].read,
+              readAt: m.readReceipts[0].readAt,
+              user: m.sender?.email,
+            },
           }));
 
           const data = {
@@ -327,6 +421,20 @@ export class SockerServer {
               chat: {
                 select: {
                   id: true,
+                  _count: {
+                    select: {
+                      messages: {
+                        where: {
+                          readReceipts: {
+                            some: {
+                              userId: socket.data.id,
+                              read: false,
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
                   messages: {
                     orderBy: {
                       createdAt: "desc",
@@ -339,18 +447,10 @@ export class SockerServer {
                         select: {
                           readReceipts: {
                             where: {
-                              userId: socket.data.id,
+                              // userId: socket.data.id,
                               read: false,
                             },
                           },
-                        },
-                      },
-                      readReceipts: {
-                        where: {
-                          userId: socket.data.id,
-                        },
-                        select: {
-                          read: true,
                         },
                       },
                     },
@@ -369,15 +469,17 @@ export class SockerServer {
             },
           });
 
-          const data = list.map((l) => ({
-            id: l.chat.id,
-            messages: {
-              message: l.chat.messages[0].body,
-              read: l.chat.messages[0].readReceipts[0].read,
-              count: 1,
-            },
-            users: l.chat.userChats.map((d) => d.user.email),
-          }));
+          const data = list.map((l) => {
+            return {
+              id: l.chat.id,
+              messages: {
+                message: l.chat.messages[0]?.body ?? null,
+                read: l.chat._count.messages > 0 ? false : true,
+                count: l.chat._count.messages,
+              },
+              users: l.chat.userChats.map((d) => d.user.email),
+            };
+          });
 
           socket.emit("chat:list", data);
         } catch (error) {

@@ -71,7 +71,7 @@ model MessageReadReceipt {
   user       User    @relation(fields: [userId], references: [id])
 
   read        Boolean
-  readAt     DateTime @default(now())
+  readAt      DateTime @default(now())
 
   @@unique([messageId, userId])
 }

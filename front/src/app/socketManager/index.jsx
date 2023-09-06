@@ -16,7 +16,8 @@ const defaultContextValue = {
     getUsers: (page) => 1,
     createChat: (id) => 1,
     getChatList: (page) => 1,
-    sendMessageWS: (id, type, body) => 1,
+    sendMessage: (id, type, body) => 1,
+    readMessages: (id) => 1,
     setChat: (id) => 1,
   },
 };
@@ -57,6 +58,10 @@ function SockProvider({ children }) {
   const [actionsList, setActionsList] = React.useState([]);
 
   React.useEffect(() => {
+    setState({
+      loggedIn: userContext.user.loggedIn,
+      email: userContext.user.email,
+    });
     if (socket === null) {
       const ws = io(link, {
         withCredentials: true,
@@ -95,6 +100,29 @@ function SockProvider({ children }) {
       ws.on("trigger", () => {
         console.log(chatState, "chatState to checlasdkjk");
         setActionsList((prev) => [...prev, "triggered from node"]);
+      });
+
+      ws.on("chat:read", ({ id }) => {
+        setChatState((prev) => {
+          if (prev.activeChat.chat.id == id) {
+            return {
+              ...prev,
+              activeChat: {
+                ...prev.activeChat,
+                chat: {
+                  ...prev.activeChat.chat,
+                  messages: prev.activeChat.chat.messages.map((m) => ({
+                    ...m,
+                    read: { ...m.read, read: true },
+                  })),
+                },
+              },
+            };
+          }
+        });
+        if (chatState.activeChat.chat.id === id) {
+          set;
+        }
       });
 
       ws.on("chat:message", (data) => {
@@ -159,18 +187,8 @@ function SockProvider({ children }) {
        * @property {string} chatId - The chat's ID.
        * @property {Message} participants - The list of users participating in the chat.
        */
-
-      // ws.on(
-      //   "chat:message",
-      //   /**
-      //    * Event listener for the chat:create event.
-      //    *
-      //    * @param {ChatMessage} data - The data for the chat:create event.
-      //    */
-      //   (data) => {}
-      // );
     }
-  }, [state.loggedIn]);
+  }, [userContext.user]);
 
   const createChatWS = async (id) => {
     try {
@@ -212,6 +230,12 @@ function SockProvider({ children }) {
     }
   };
 
+  const readMessagesWs = (id) => {
+    if (socket !== null) {
+      socket.emit("chat:read", id);
+    }
+  };
+
   const trigger = () => {
     try {
       if (socket) {
@@ -224,7 +248,6 @@ function SockProvider({ children }) {
 
   const setActiveChat = async (id) => {
     if (socket) {
-      console.log("SET ACTIVE CHAT WAS CALLED");
       setChatState((prev) => ({
         ...prev,
         activeChat: {
@@ -248,10 +271,13 @@ function SockProvider({ children }) {
     getChatList: getChatListWS,
     setChat: setActiveChat,
     sendMessage: sendMessageWS,
+    readMessages: readMessagesWs,
   };
 
   return (
-    <SockContext.Provider value={{ state: chatState, actions: actions }}>
+    <SockContext.Provider
+      value={{ state: { ...chatState, email: state.email }, actions: actions }}
+    >
       <div ref={ref} className="panel">
         <div className="panel-item">
           <button onClick={createChatWS}>create chat</button>

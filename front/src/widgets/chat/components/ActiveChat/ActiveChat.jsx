@@ -1,14 +1,27 @@
 import { SockContext } from "@components/app/socketManager";
+import { useParams } from "react-router-dom";
 import React from "react";
-
+import InputMessage from "./components/InputMessage/InputMessage";
 function ActiveChat() {
   const context = React.useContext(SockContext);
+
   const [input, setInput] = React.useState("");
+  const params = useParams();
+
+  React.useEffect(() => {
+    if (!(context.state.activeChat.chat.id === params.id)) {
+      context.actions.setChat(params.id);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    console.log(context.state.activeChat, "active chat");
+  }, [context.state.activeChat]);
 
   return (
     <div>
       {context.state.activeChat.chat.messages.map((m) => (
-        <p>{m.body}</p>
+        <InputMessage message={m} email={context.state.email} />
       ))}
 
       <div>
