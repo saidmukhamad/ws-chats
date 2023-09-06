@@ -1,5 +1,6 @@
 import React from "react";
 import { instance } from "../../shared/api/instance";
+
 const defaultContextValue = {
   user: {
     loggedIn: false,
@@ -43,9 +44,7 @@ function ContextProvider({ children }) {
 
   const logIn = (email) => {
     const request = instance.post(`/auth/log`, {
-      body: JSON.stringify({
-        email,
-      }),
+      email,
     });
 
     request

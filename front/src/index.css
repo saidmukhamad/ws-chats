@@ -18,10 +18,13 @@ div {
 
 .auth-container {
   display: flex;
+  flex-direction: column;
   border: 1px solid black;
   max-width: 500px;
-  height: 150px;
-  border-bottom: 0;
+  border-radius: 3px;
+  padding: 5px;
+  height: 100%;
+  margin: 23ox;
 }
 
 .form-container {
@@ -29,4 +32,116 @@ div {
   flex-direction: column;
   max-width: 350px;
   align-items: center;
+}
+
+.auth-button-container {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  height: 32px;
+}
+
+button {
+  background-color: #0a0a23;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding-left: 12px;
+  padding-right: 12px;
+  min-width: 50px;
+  margin: 5px;
+}
+
+button:hover {
+  background-color: #46469d;
+}
+
+.chat-container {
+  margin-top: 12px;
+
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  width: 500px;
+  height: 800px;
+  border: 0.5px solid black;
+
+  overflow-y: scroll;
+  overflow-x: hidden;
+}
+
+.chat-container::-webkit-scrollbar {
+  width: 2px;
+}
+
+.chat-container::-webkit-scrollbar-track {
+  background-color: #f5f5f5; /* Change this to adjust the track color */
+}
+
+.chat-container::-webkit-scrollbar-thumb {
+  background-color: #666; /* Change this to adjust the thumb color */
+  border-radius: 2px; /* Change this for rounded corners */
+}
+
+.chat-container::-webkit-scrollbar-thumb:hover {
+  background-color: #555; /* Change this for the hover effect */
+}
+
+.panel {
+  position: absolute;
+  flex-direction: column;
+  display: flex;
+  /* justify-content: center; */
+  align-items: center;
+  width: 500px;
+  height: 150px;
+  background-color: wheat;
+}
+
+.panel-item {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.panel-item-log {
+  flex-direction: column;
+  align-items: center;
+  justify-content: start;
+  overflow-y: scroll;
+  height: 100%;
+}
+
+.panel-item-log::-webkit-scrollbar {
+  display: none;
+}
+
+.row-flex {
+  display: flex;
+  justify-content: space-between;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin-bottom: 8px;
+}
+
+.message {
+  width: 100%;
+  border: 1px solid black;
+  margin-top: 0.325rem;
+}
+
+.sender {
+  /* background-color: #0a0a23; */
+}
+
+.sender[data-sender="1"] {
+  background-color: #46469d;
+}
+
+.sender[data-sender="0"] {
+  background-color: #2a2a41;
+}
+
+.message-body {
+  padding: 4px;
 }
