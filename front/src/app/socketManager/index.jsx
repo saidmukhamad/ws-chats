@@ -1,6 +1,7 @@
 import React from "react";
 import io, { Socket, DefaultEventsMap } from "socket.io-client";
 
+import { ChatStore } from "@components/shared/utils/chatStore/chatStore";
 import { Context } from "../context/Context";
 import { link } from "../../shared/api/instance";
 import useDrag from "@components/shared/utils/useDrag";
@@ -15,6 +16,8 @@ const defaultContextValue = {
     getUsers: (page) => 1,
     createChat: (id) => 1,
     getChatList: (page) => 1,
+    sendMessageWS: (id, type, body) => 1,
+    setChat: (id) => 1,
   },
 };
 
@@ -40,8 +43,14 @@ function SockProvider({ children }) {
   const socket = socketConnection.current;
 
   const [chatState, setChatState] = React.useState({
-    chats: new Map(),
-    activeChat: {},
+    chats: new ChatStore(),
+    activeChat: {
+      loading: false,
+      chat: {
+        id: null,
+        messages: [],
+      },
+    },
     userList: [],
   });
 
@@ -65,11 +74,44 @@ function SockProvider({ children }) {
       });
 
       ws.on("chat:list", (data) => {
-        setChatState((prev) => ({ ...prev, chats: data }));
+        setChatState((prev) => {
+          let tempStore = new ChatStore(prev.chats);
+          tempStore.populateFromData(data);
+          return { ...prev, chats: tempStore };
+        });
+      });
+
+      ws.on("chat:look", (data) => {
+        console.log(data, "chatLLOOOK");
+        setChatState((prev) => ({
+          ...prev,
+          activeChat: {
+            loading: false,
+            chat: data,
+          },
+        }));
       });
 
       ws.on("trigger", () => {
+        console.log(chatState, "chatState to checlasdkjk");
         setActionsList((prev) => [...prev, "triggered from node"]);
+      });
+
+      ws.on("chat:message", (data) => {
+        setChatState((prev) => {
+          if (prev.activeChat.chat.id == data.chatId) {
+            return {
+              ...prev,
+              activeChat: {
+                ...prev.activeChat,
+                chat: {
+                  ...prev.activeChat.chat,
+                  messages: [...prev.activeChat.chat.messages, data],
+                },
+              },
+            };
+          } else return { ...prev };
+        });
       });
 
       /**
@@ -93,17 +135,11 @@ function SockProvider({ children }) {
          *
          * @param {ChatCreateData} data - The data for the chat:create event.
          */ (data) => {
-          console.log(data);
-          setChatState((prev) => ({
-            ...prev,
-            chats: [
-              ...prev.chats,
-              {
-                ...data,
-                messages: [],
-              },
-            ],
-          }));
+          setChatState((prev) => {
+            let tempStore = new ChatStore(prev.chats);
+            tempStore.populateFromData(data);
+            return { ...prev, chats: tempStore };
+          });
         }
       );
 
@@ -121,17 +157,17 @@ function SockProvider({ children }) {
        * @property {Message} participants - The list of users participating in the chat.
        */
 
-      ws.on(
-        "chat:message",
-        /**
-         * Event listener for the chat:create event.
-         *
-         * @param {ChatMessage} data - The data for the chat:create event.
-         */
-        (data) => {}
-      );
+      // ws.on(
+      //   "chat:message",
+      //   /**
+      //    * Event listener for the chat:create event.
+      //    *
+      //    * @param {ChatMessage} data - The data for the chat:create event.
+      //    */
+      //   (data) => {}
+      // );
     }
-  }, []);
+  }, [state.loggedIn]);
 
   const createChatWS = async (id) => {
     try {
@@ -144,6 +180,10 @@ function SockProvider({ children }) {
   const sendMessageWS = async (id, type, body) => {
     try {
       if (socket !== null) {
+        socket.emit("chat:sendMessage", {
+          id: id,
+          body,
+        });
       }
     } catch (error) {}
   };
@@ -179,12 +219,32 @@ function SockProvider({ children }) {
     }
   };
 
+  const setActiveChat = async (id) => {
+    if (socket) {
+      console.log("SET ACTIVE CHAT WAS CALLED");
+      setChatState((prev) => ({
+        ...prev,
+        activeChat: {
+          chat: {
+            id: null,
+            messages: [],
+            name: null,
+          },
+          loading: true,
+        },
+      }));
+      socket.emit("chat:look", id);
+    }
+  };
+
   const { ref } = useDrag();
 
   const actions = {
     getUsers: getUserListWS,
     createChat: createChatWS,
     getChatList: getChatListWS,
+    setChat: setActiveChat,
+    sendMessage: sendMessageWS,
   };
 
   return (

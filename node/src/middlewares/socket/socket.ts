@@ -129,6 +129,7 @@ export class SockerServer {
           console.log(error);
         }
       });
+
       socket.on("chat:create", async (chatParticipant: string, callback) => {
         try {
           const users = [chatParticipant, socket.data.id];
@@ -169,16 +170,18 @@ export class SockerServer {
                 []
               ).flat() as string[];
 
-              console.log(test, "test");
-
               socketIds.push(...(test ?? []));
             }
 
+            const data = {
+              id: chat.id,
+              messages: [],
+              users: chat.userChats.map((d) => d.user.email),
+            };
+
             for (let s of socketIds) {
-              socket.to(s).emit("chat:create", {
-                chatId: chat.id,
-                participants: users,
-              });
+              socket.to(s).emit("chat:create", data);
+              socket.emit("chat:create", data);
             }
           }
         } catch (error) {
@@ -186,62 +189,72 @@ export class SockerServer {
         }
       });
 
-      socket.on(
-        "chat:sendMessage",
-        async (chatId: string, message: string, callback) => {
-          try {
-            const chat = await client.message.create({
-              data: {
-                body: message,
-                chat: {
-                  connect: {
-                    id: chatId,
-                  },
-                },
-                sender: {
-                  connect: {
-                    id: socket.data.id,
-                  },
+      type chatSendMessage = {
+        chatId: string;
+        message: string;
+      };
+
+      socket.on("chat:sendMessage", async ({ id, body }) => {
+        try {
+          console.log(id);
+          const chat = await client.message.create({
+            data: {
+              body: body,
+              chat: {
+                connect: {
+                  id: id,
                 },
               },
-              include: {
-                chat: {
-                  include: {
-                    userChats: {
-                      select: {
-                        user: {
-                          select: {
-                            email: true,
-                          },
+              sender: {
+                connect: {
+                  id: socket.data.id,
+                },
+              },
+            },
+            include: {
+              sender: true,
+              chat: {
+                include: {
+                  userChats: {
+                    select: {
+                      user: {
+                        select: {
+                          email: true,
                         },
                       },
                     },
                   },
                 },
               },
-            });
+            },
+          });
 
-            if (chat) {
-              const socketIds: string[] = [];
-              const participants: string[] = [];
-              for (let id of chat.chat.userChats) {
-                const test = activeUsers.get(id.user.email) ?? [];
-                participants.push(id.user.email);
-                socketIds.push(...Array.from(test));
-              }
+          if (chat) {
+            const socketIds: string[] = [];
+            const participants: string[] = [];
 
-              for (let s of socketIds) {
-                socket.to(s).emit("chat:sendMessage", {
-                  chatId: chat.id,
-                  message,
-                });
-              }
+            for (let id of chat.chat.userChats) {
+              const test = activeUsers.get(id.user.email) ?? [];
+              participants.push(id.user.email);
+              socketIds.push(...Array.from(test));
             }
-          } catch (error) {
-            console.error(error);
+
+            const data = {
+              chatId: id,
+              id: chat.id,
+              body: chat.body,
+              sender: chat.sender?.email,
+            };
+
+            for (let s of socketIds) {
+              socket.to(s).emit("chat:message", data);
+            }
+            socket.emit("chat:message", data);
           }
+        } catch (error) {
+          console.error(error);
         }
-      );
+      });
 
       socket.on("chat:look", async (chatId, callback) => {
         try {
@@ -249,13 +262,35 @@ export class SockerServer {
             where: {
               id: chatId,
             },
-            include: {
-              messages: true,
+            select: {
+              id: true,
+              name: true,
+              messages: {
+                orderBy: {
+                  createdAt: "desc",
+                },
+                select: {
+                  body: true,
+                  sender: { select: { email: true } },
+                },
+              },
             },
           });
 
-          socket.emit("chat:lookup", look);
-        } catch (error) {}
+          const messages = look?.messages.map((m) => ({
+            ...m,
+            sender: m.sender?.email,
+          }));
+
+          const data = {
+            ...look,
+            messages,
+          };
+
+          socket.emit("chat:look", data);
+        } catch (error) {
+          console.log(error);
+        }
       });
 
       socket.on("chat:list", async (page = 0) => {

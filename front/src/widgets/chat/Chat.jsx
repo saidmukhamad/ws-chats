@@ -23,7 +23,7 @@ function Chat() {
       </nav>
       <Routes>
         <Route path="/" element={<ChatList />} />
-        <Route path="/chat" element={<ActiveChat />} />
+        <Route path="/chat/:id" element={<ActiveChat />} />
         <Route path="/new" element={<NewChat />} />
         <Route />
       </Routes>

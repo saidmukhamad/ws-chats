@@ -1,26 +1,36 @@
-class ChatStore {
-  constructor() {
+export class ChatStore {
+  constructor(data) {
     this.chatsMap = new Map();
+    if (data) {
+      console.log(data);
+      if (data instanceof ChatStore) {
+        this.chatsMap = data.chatsMap;
+      } else {
+        this.populateFromData(data);
+      }
+    }
   }
 
   populateFromData(data) {
-    for (const chat of data) {
-      const messagesObject = {};
-      chat.messages.forEach((message) => {
-        messagesObject[message] = message;
-      });
+    if (data instanceof Array) {
+      for (const chat of data) {
+        console.log(chat, "chat in populate");
+        const messagesObject = [];
+        chat.messages.forEach((message) => {
+          messagesObject.push(message);
+        });
 
-      const usersObject = {};
-      chat.users.forEach((user) => {
-        usersObject[user] = user;
-      });
+        const usersObject = [];
+        chat.users.forEach((user) => {
+          usersObject.push(user);
+        });
 
-      this.chatsMap.set(chat.id, {
-        messages: messagesObject,
-        users: usersObject,
-      });
-    }
-    return new Map(this.chatsMap);
+        this.chatsMap.set(chat.id, {
+          messages: messagesObject,
+          users: usersObject,
+        });
+      }
+    } else this.populateFromData([data]);
   }
 
   updateChatMessages(chatId, newMessages) {
@@ -33,7 +43,6 @@ class ChatStore {
     } else {
       console.error(`Chat with ID ${chatId} not found.`);
     }
-    return new Map(this.chatsMap);
   }
 
   updateChatUsers(chatId, newUsers) {
@@ -46,12 +55,9 @@ class ChatStore {
     } else {
       console.error(`Chat with ID ${chatId} not found.`);
     }
-
-    return new Map(this.chatsMap);
   }
 
-  // Optional: Getter method to retrieve chat data
-  getChat(chatId) {
-    return this.chatsMap.get(chatId);
+  arr() {
+    return Array.from(this.chatsMap);
   }
 }

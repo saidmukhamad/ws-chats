@@ -11,7 +11,7 @@ model Message {
   id String @id @default(auto()) @map("_id") @db.ObjectId
   
   chat    Chat  @relation(name: "chatMessages", fields: [chatId], references: [id], onDelete: Cascade)
-  chatId  String @db.ObjectId @unique
+  chatId  String @db.ObjectId
 
 
   senderId        String?        @db.ObjectId
