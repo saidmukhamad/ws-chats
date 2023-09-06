@@ -110,7 +110,10 @@ function SockProvider({ children }) {
                 },
               },
             };
-          } else return { ...prev };
+          } else {
+            // prev.chats.
+            return { ...prev };
+          }
         });
       });
 

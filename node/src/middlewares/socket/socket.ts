@@ -307,7 +307,6 @@ export class SockerServer {
             ...look,
             messages,
           };
-
           socket.emit("chat:look", data);
         } catch (error) {
           console.log(error);
@@ -336,6 +335,24 @@ export class SockerServer {
                     select: {
                       body: true,
                       senderId: true,
+                      _count: {
+                        select: {
+                          readReceipts: {
+                            where: {
+                              userId: socket.data.id,
+                              read: false,
+                            },
+                          },
+                        },
+                      },
+                      readReceipts: {
+                        where: {
+                          userId: socket.data.id,
+                        },
+                        select: {
+                          read: true,
+                        },
+                      },
                     },
                   },
                   userChats: {
@@ -354,7 +371,11 @@ export class SockerServer {
 
           const data = list.map((l) => ({
             id: l.chat.id,
-            messages: l.chat.messages,
+            messages: {
+              message: l.chat.messages[0].body,
+              read: l.chat.messages[0].readReceipts[0].read,
+              count: 1,
+            },
             users: l.chat.userChats.map((d) => d.user.email),
           }));
 
